@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
-import * as bookingService from "./booking.service";
+import { sendBookingEvent } from "../../kafka/producer";
 
 export const book = async (req: Request, res: Response) => {
   try {
     const { userId, scheduleId } = req.body;
 
-    const result = await bookingService.bookSeat(
-      userId,
-      scheduleId
-    );
+    // Send to Kafka instead of DB
+    await sendBookingEvent({ userId, scheduleId });
 
-    res.json(result);
+    res.json({
+      message: "Booking request queued",
+    });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
