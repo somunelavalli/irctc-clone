@@ -1,5 +1,6 @@
 import { kafka } from "../config/kafka";
 import { bookSeat } from "../modules/booking/booking.service";
+import { sendToDLQ } from "./dlqProducer";
 
 const consumer = kafka.consumer({ groupId: "booking-group" });
 
@@ -8,23 +9,33 @@ export const startConsumer = async () => {
 
   await consumer.subscribe({
     topic: "booking_requests",
-    fromBeginning: false,
   });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
-        console.log("message :::", message);
-        
       const data = JSON.parse(message.value!.toString());
 
-      console.log("Processing booking:", data);
+      let retries = 0;
+      const maxRetries = 3;
 
-      try {
-        await bookSeat(data.userId, data.scheduleId);
-        console.log("Booking success");
-      } catch (err) {
-        console.error("Booking failed:", err);
+      while (retries < maxRetries) {
+        try {
+          await bookSeat(
+            data.userId,
+            data.scheduleId,
+            data.idempotencyKey
+          );
+
+          console.log("Booking success");
+          return;
+        } catch (err) {
+          retries++;
+          console.error(`Retry ${retries}`, err);
+        }
       }
+
+      // After retries fail → send to DLQ
+      await sendToDLQ(data);
     },
   });
 };
