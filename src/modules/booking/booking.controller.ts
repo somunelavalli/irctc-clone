@@ -10,12 +10,12 @@ export const book = async (req: Request, res: Response) => {
      const idempotencyKey = `${userId}_${scheduleId}`;
 
      // Insert PENDING booking
-  await pool.query(
-    `INSERT INTO bookings (user_id, schedule_id, status, idempotency_key)
-     VALUES ($1, $2, 'PENDING', $3)
-     ON CONFLICT (idempotency_key) DO NOTHING`,
-    [userId, scheduleId, idempotencyKey]
-  );
+    await pool.query(
+      `INSERT INTO bookings (user_id, schedule_id, status, idempotency_key)
+      VALUES ($1, $2, 'PENDING', $3)
+      ON CONFLICT (idempotency_key) DO NOTHING`,
+      [userId, scheduleId, idempotencyKey]
+    );
 
     // Send to Kafka instead of DB
     await sendBookingEvent({ userId, scheduleId, idempotencyKey });
