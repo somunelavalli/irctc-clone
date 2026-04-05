@@ -42,17 +42,17 @@ export const bookSeat = async (
       [seat.id]
     );
 
-    const booking = await client.query(
-      `INSERT INTO bookings 
-       (user_id, schedule_id, seat_id, status, idempotency_key)
-       VALUES ($1, $2, $3, 'CONFIRMED', $4)
-       RETURNING *`,
-      [userId, scheduleId, seat.id, idempotencyKey]
+    // 🔥 4️⃣ UPDATE booking 
+    const booking =  await client.query(
+      `UPDATE bookings 
+       SET status = 'CONFIRMED', seat_id = $1
+       WHERE idempotency_key = $2`,
+      [seat.id, idempotencyKey]
     );
 
     await client.query("COMMIT");
 
-    return booking.rows[0];
+    return { success: true, seatId: seat.id, bookinngDetails: booking.rows[0] };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;

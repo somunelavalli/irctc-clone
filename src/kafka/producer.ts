@@ -11,6 +11,7 @@ export const sendBookingEvent = async (data: any) => {
     topic: "booking_requests",
     messages: [
       {
+        key: data?.scheduleId, 
         value: JSON.stringify(data),
       },
     ],
